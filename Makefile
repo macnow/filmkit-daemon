@@ -56,6 +56,24 @@ deploy: build
 	ssh $(ROUTER_USER)@$(ROUTER_IP) "/etc/init.d/filmkit restart"
 	@echo "Daemon deployed. Use filmkit-glinet to also deploy the frontend."
 
+## Build static libusb for arm64 (required once before `make build`)
+## Downloads libusb 1.0.27 source and cross-compiles it to $(LIBUSB_DIR)
+LIBUSB_VERSION := 1.0.27
+LIBUSB_URL     := https://github.com/libusb/libusb/releases/download/v$(LIBUSB_VERSION)/libusb-$(LIBUSB_VERSION).tar.bz2
+
+build-libusb:
+	@echo "Building static libusb $(LIBUSB_VERSION) for arm64-linux-musl..."
+	cd /tmp && curl -sL $(LIBUSB_URL) | tar xj
+	cd /tmp/libusb-$(LIBUSB_VERSION) && \
+		CC=$(CC) ./configure \
+			--host=aarch64-unknown-linux-musl \
+			--prefix=$(LIBUSB_DIR) \
+			--enable-static \
+			--disable-shared \
+			--disable-udev && \
+		make -j4 install
+	@echo "libusb installed to $(LIBUSB_DIR)"
+
 ## Install cross-compiler on macOS (homebrew)
 install-cross:
 	brew tap messense/macos-cross-toolchains
