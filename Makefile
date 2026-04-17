@@ -10,7 +10,8 @@ LDFLAGS   := -ldflags "-X main.version=$(VERSION) -s -w"
 GOARCH    := arm64
 GOOS      := linux
 # CGO cross-compiler — install with: make install-cross
-CC        := aarch64-unknown-linux-musl-gcc
+# Override with CC=aarch64-linux-musl-gcc for musl.cc toolchain (used in CI)
+CC        ?= aarch64-unknown-linux-musl-gcc
 
 # Router connection (for deploy target)
 ROUTER_IP   ?= 10.0.1.1
@@ -61,12 +62,16 @@ deploy: build
 LIBUSB_VERSION := 1.0.27
 LIBUSB_URL     := https://github.com/libusb/libusb/releases/download/v$(LIBUSB_VERSION)/libusb-$(LIBUSB_VERSION).tar.bz2
 
+# Triple used for libusb ./configure --host — override in CI if needed
+# musl.cc toolchain: HOST_TRIPLE=aarch64-linux-musl
+HOST_TRIPLE ?= aarch64-unknown-linux-musl
+
 build-libusb:
-	@echo "Building static libusb $(LIBUSB_VERSION) for arm64-linux-musl..."
+	@echo "Building static libusb $(LIBUSB_VERSION) for $(HOST_TRIPLE)..."
 	cd /tmp && curl -sL $(LIBUSB_URL) | tar xj
 	cd /tmp/libusb-$(LIBUSB_VERSION) && \
 		CC=$(CC) ./configure \
-			--host=aarch64-unknown-linux-musl \
+			--host=$(HOST_TRIPLE) \
 			--prefix=$(LIBUSB_DIR) \
 			--enable-static \
 			--disable-shared \
